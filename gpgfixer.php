@@ -19,74 +19,79 @@ if (!function_exists('str_contains')) {
     }
 }
 
+function is_base64($char) {
+	$charint = ord($char);
+	if (($charint >= 65 && $charint <= 90) ||
+	    ($charint >= 97 && $charint <= 122) ||
+	    ($charint >= 48 && $charint <= 57) ||
+	    $charint == 43 || $charint == 47 || $charint == 61) {
+	    	return True;
+	} 
+	return False;
+}
+
 function reformat_pgp_message($message) {
-	$lines = explode("\n", $message);
+	if (!str_contains($message, "\n")) $message = $message . "\n";
 	$msg_type = "";
 
 	$is_pgp = False;
-	$output_lines = array();
-	foreach ($lines as $line) {
-		//$line = $line[0];
-		if (str_contains($line, "-----BEGIN PGP MESSAGE-----")) {
-			$msg_type = "message";
-			$is_pgp = True;
-			continue;
-		}
-		if (str_contains($line, "-----BEGIN PGP PUBLIC KEY BLOCK-----")) {
-			$msg_type = "pubkey";
-			$is_php = True;
-			continue;
-		}
-		if (str_contains($line, "-----END PGP MESSAGE-----")) {
-			continue;
-		}
-		if (str_contains($line, "-----END PGP PUBLIC KEY BLOCK-----")) {
-			continue;
-		}
 
-		$line = mb_convert_encoding($line, "ASCII");
-		$chars = str_split($line);
-		
-		$i = 0;
-		$new_line = "";
-
-		$finish_line = False;
-		foreach ($chars as $char) {
-			$charint = ord($char);
-			if (($charint >= 65 && $charint <= 90) || 
-			    ($charint >= 97 && $charint <= 122) ||
-			    ($charint >= 48 && $charint <= 57) ||
-			    $charint == 43 || $charint == 47 || $charint == 61) {
-			    	$new_line = $new_line . $char;
-				$i + $i + 1;
-			}
-			if ($i == 64) break;
-		}
-
-		$new_line = $new_line . "\n";
-		if ($output_lines !== "") array_push($output_lines, mb_convert_encoding($new_line, "UTF-8"));
+	if (str_contains($message, "-----BEGIN PGP MESSAGE-----")) {
+		$msg_type = "message";
+		$is_pgp = True;
 	}
 
-	$return_string = "";
-
-	if ($msg_type === "message") {
-		$return_string = $return_string . "-----BEGIN PGP MESSAGE-----\n";
+	if (str_contains($message, "-----BEGIN PGP PUBLIC KEY BLOCK-----")) {
+		$msg_type = "pubkey";
+		$is_pgp = True;
 	}
 
-	if ($msg_type === "pubkey") {
-		$return_string = $return_string . "-----BEGIN PGP PUBLIC KEY BLOCK-----\n";
+	$message = str_replace("-----BEGIN PGP MESSAGE-----", "", $message);
+	$message = str_replace("-----BEGIN PGP PUBLIC KEY BLOCK-----", "", $message);
+	$message = str_replace("-----END PGP MESSAGE-----", "", $message);
+	$message = str_replace("-----END PGP PUBLIC KEY BLOCK-----", "", $message);
+
+	$chars = str_split($message);
+	$message = "";
+	$increment = 0;
+
+	foreach ($chars as $char) {
+		if (is_base64($char)) {
+		    	$message = $message . $char;
+			$increment++;
+		}
+
+		if ($increment == 64) {
+			$increment = 0;
+			$message = $message . "\n";
+		}
 	}
 
-	foreach ($output_lines as $line) {
-		$return_string = $return_string . $line;
-	}
+	$theend = substr($message, strlen($message) - 5, strlen($message));
+	$message = substr($message, 0, strlen($message) - 5);
 
-	if ($msg_type === "message") {
-		$return_string = $return_string . "-----END PGP MESSAGE-----\n";
-	}
+	if ($is_pgp === True) {
+		$return_string = "";
 
-	if ($msg_type === "pubkey") {
-		$return_string = $return_string . "-----END PGP PUBLIC KEY BLOCK-----\n";
+		if ($msg_type === "message") {
+			$return_string = $return_string . "-----BEGIN PGP MESSAGE-----\n";
+		}
+
+		if ($msg_type === "pubkey") {
+			$return_string = $return_string . "-----BEGIN PGP PUBLIC KEY BLOCK-----\n";
+		}
+
+		$return_string = $return_string . $message . "\n" . $theend . "\n";
+
+		if ($msg_type === "message") {
+			$return_string = $return_string . "-----END PGP MESSAGE-----\n";
+		}
+
+		if ($msg_type === "pubkey") {
+			$return_string = $return_string . "-----END PGP PUBLIC KEY BLOCK-----\n";
+		}
+	} else {
+		$return_string = "Message is not valid GPG!\n";
 	}
 
 	return $return_string;
