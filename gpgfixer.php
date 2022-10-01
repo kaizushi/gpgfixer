@@ -31,6 +31,8 @@ function is_base64($char) {
 }
 
 function reformat_pgp_message($message) {
+	$message = str_replace("<br>", "\n");
+
 	if (!str_contains($message, "\n")) $message = $message . "\n";
 	$msg_type = "";
 
@@ -94,5 +96,6 @@ function reformat_pgp_message($message) {
 		$return_string = "Message is not valid GPG!\n";
 	}
 
+	$return_string = str_replace("\n", "<br>");
 	return $return_string;
 }
