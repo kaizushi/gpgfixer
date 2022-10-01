@@ -31,7 +31,7 @@ function is_base64($char) {
 }
 
 function reformat_pgp_message($message) {
-	$message = str_replace("<br>", "\n");
+	$message = str_replace("<br>", "\n", $message);
 
 	if (!str_contains($message, "\n")) $message = $message . "\n";
 	$msg_type = "";
