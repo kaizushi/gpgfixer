@@ -96,6 +96,6 @@ function reformat_pgp_message($message) {
 		$return_string = "Message is not valid GPG!\n";
 	}
 
-	$return_string = str_replace("\n", "<br>");
+	$return_string = str_replace("\n", "<br>", $return_string);
 	return $return_string;
 }
